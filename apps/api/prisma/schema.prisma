@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DisputeStatus {
+  pending
+  in_review
+  resolved
+  cancelled
+}
+
+model Dispute {
+  id                String        @id @default(uuid()) @db.Uuid
+  arbitrable        String
+  externalDisputeId String
+  choices           Int
+  metadataUri       String?
+  status            DisputeStatus @default(pending)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  evidence Evidence[]
+  verdict  Verdict?
+
+  @@unique([arbitrable, externalDisputeId])
+  @@index([status])
+}
+
+model Evidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  disputeId   String   @db.Uuid
+  submitter   String
+  uri         String
+  contentHash String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+}
+
+model Verdict {
+  id         String   @id @default(uuid()) @db.Uuid
+  disputeId  String   @unique @db.Uuid
+  ruling     Int
+  rationale  String
+  signedBy   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+}
