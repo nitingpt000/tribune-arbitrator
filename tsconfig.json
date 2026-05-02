@@ -1,0 +1,5 @@
+{
+  "extends": "@tribune/tsconfig/base.json",
+  "include": [],
+  "files": []
+}

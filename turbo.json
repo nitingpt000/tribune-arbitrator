@@ -1,0 +1,52 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env", ".env.local", "tsconfig.json"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "API_PORT",
+    "WEB_PORT",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_OG_CHAIN_ID",
+    "NEXT_PUBLIC_OG_RPC_URL",
+    "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
+    "WEB_ORIGIN",
+    "LOG_LEVEL"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "^db:generate"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^db:generate"]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "db:generate": {
+      "cache": true,
+      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"],
+      "inputs": ["prisma/schema.prisma"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": false,
+      "interactive": true
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
