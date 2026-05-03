@@ -2,7 +2,27 @@
 
 ERC-792-compatible AI arbitrator for onchain disputes between AI agents.
 
-This repository is a Turborepo monorepo containing the Tribune web app, API, and shared packages.
+This repository is a Turborepo monorepo containing the Tribune web app, API, panel service, and shared packages.
+
+## Phase 3 — Real panel on 0G
+
+What's new in Phase 3:
+
+- **`apps/panel`** is a new NestJS service running the panel adjudication on a strict hex architecture. The domain (`apps/panel/src/domain/`) imports zero infrastructure — only port interfaces. Adapters in `apps/panel/src/adapters/**` are interchangeable per environment via `apps/panel/src/infrastructure/di/adapters.ts`. See `docs/architecture.md`.
+- **`OgComputeAdapter`** speaks the documented `@0glabs/0g-serving-broker` API: discovers providers via `listService()`, calls 3 distinct model families in parallel via `Promise.all`, runs `processResponse()` per panelist for the TEE attestation, and surfaces failures as typed `InferenceError`s.
+- **`OgStorageAdapter`** wraps `@0gfoundation/0g-storage-ts-sdk` with a per-reader AES-256-GCM-then-ECIES envelope so evidence and verdict bundles are encrypted client-side under each authorised reader.
+- **`ReplayAdapter`** hashes `(model + system + user + maxTokens + temperature)` to a fixture file. In `demo` profile it runs frozen — a cache miss throws — so demo videos are reproducible without rolling the dice on a live LLM.
+- **Prompt-injection-resistant system prompt** (version-tracked in `prompt-builder.ts`). Evidence is wrapped in `<<EVIDENCE_START>>/<<EVIDENCE_END>>` and the system prompt explicitly anticipates injection. Embedded `<<DISPUTE_*>>`, `<<EVIDENCE_*>>`, `<<CHOICES>>` tokens in evidence are escaped. Choice ordering is independently shuffled per panelist with seed-dependent rotation.
+- **`apps/api`** drops the old `MockPanelService`. `POST /disputes` now fire-and-forgets to `apps/panel`'s `/adjudicate`. The panel posts `vote-update`, `verdict`, `settlement-step` events back to `/panel-callback/*` on `apps/api`, which writes Postgres and emits onto the existing SSE stream. **The frontend received zero changes** beyond the demo pill reading `/info` to show "Live panel" / "Replay" / "Test" / "Mock panel" based on `APP_PROFILE`.
+- **Failure paths are graceful.** Per-panelist 30s timeouts, parsing failures fall to `FAILED` for that panelist, all-3-fail produces a clean `FAILED` verdict (no exceptions, no hangs, no auto-retry).
+
+What's still deferred (Phase 4):
+
+- No KeeperHub. `ExecutionPort` is implemented by `DirectTxAdapter` (HTTP back to `apps/api`) and `LogOnlyExecutionAdapter` (tests). Phase 4 adds a real KeeperHub adapter — same port.
+- No ENS write. `IdentityPort.writeReputation()` is a no-op in `ReadonlyEnsAdapter`. Phase 4 wires the real text-record write.
+- No iNFT, no ERC-7857.
+
+See `apps/panel/SPIKE.md` for the day-1 research, the throwaway script, and the verification checklist for the live profile.
 
 ## Phase 2 — Real API and persistence
 
@@ -26,6 +46,25 @@ What is **not** wired in Phase 2 (deferred to Phase 3+):
 - **Node.js** 20+
 - **pnpm** 9+ (`npm install -g pnpm`)
 - **Docker** (for the local Postgres database)
+
+## Profiles
+
+The panel service runs in one of four profiles, set by `APP_PROFILE`:
+
+| Profile  | Inference                                                | Storage          | Use                                                   |
+| -------- | -------------------------------------------------------- | ---------------- | ----------------------------------------------------- |
+| `test`   | StubLlmAdapter (deterministic)                           | Memory           | CI, unit + integration tests, no key needed           |
+| `demo`   | ReplayAdapter (frozen) wrapping OgComputeAdapter         | OgStorageAdapter | Demo recording — cache miss throws                    |
+| `replay` | ReplayAdapter wrapping OgComputeAdapter                  | OgStorageAdapter | Recording new fixtures, requires funded key           |
+| `local`  | ReplayAdapter wrapping OgComputeAdapter (writes through) | OgStorageAdapter | Live development against testnet, requires funded key |
+
+```
+pnpm dev:test    # everything stubs; no 0G calls
+pnpm dev:demo    # uses checked-in fixtures; no 0G calls (frozen)
+pnpm dev:local   # live calls + caches new fixtures; PANEL_PRIVATE_KEY required
+```
+
+A judge cloning the repo can run `pnpm install && pnpm db:reset && pnpm dev:demo` and file a dispute — no 0G credentials needed. Replay fixtures are checked in.
 
 ## Quick start
 
