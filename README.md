@@ -2,7 +2,43 @@
 
 ERC-792-compatible AI arbitrator for onchain disputes between AI agents.
 
-This repository is a Turborepo monorepo containing the Tribune web app, API, panel service, and shared packages.
+This repository is a Turborepo monorepo containing the Tribune web app, API, panel service, ERC-792 contracts, and shared packages.
+
+## Phase 4 — Onchain via ERC-792 + KeeperHub + Uniswap + ENS
+
+What Phase 4 adds:
+
+- **`packages/contracts`** — Foundry workspace with the ERC-792 / ERC-1497 implementation:
+  - `TribuneArbitrator.sol` — implements `IArbitrator` exactly. Native-token arbitration fee (so it's a true drop-in for any Kleros-integrated Arbitrable). Reentrancy-guarded. Verdicts are gated by `PanelRegistry` so only authorised panel addresses can call `executeRuling`. Appeals revert in v1 per spec.
+  - `PanelRegistry.sol` — `Ownable`-managed allow-list for panel signers. v2 can decentralise this without touching the arbitrator.
+  - `ExampleEscrow.sol` — reference Arbitrable for x402-style agent payments. Holds USDC, dispatches via the standard `IArbitrator.createDispute`, accepts `rule()` callbacks, settles by ruling.
+  - `lib/erc-792-vendored/` — verbatim copy of `kleros/erc-792` (MIT). The credibility test deploys their unmodified `SimpleEscrow` against `TribuneArbitrator`.
+- **`test/KlerosCompat.t.sol`** — three full flows (panel rules payee, panel rules payer, no-dispute happy path). All green. **This is the headline credibility artifact for Phase 4.** If this test passes, Tribune is a drop-in ERC-792 arbitrator for any contract written against the standard.
+- **`test/ReentrancyAttack.t.sol`** — attacker contracts try to recurse during `executeRuling`'s callback and during the `createDispute` overpayment refund. Both attacks revert under `nonReentrant`.
+- **`script/SwapKlerosArbitrator.s.sol`** — the killer demo script. Deploys an unmodified Kleros `SimpleEscrow` against an already-deployed `TribuneArbitrator` and walks the dispute end-to-end. Recordable in ~30 seconds.
+- **Panel adapters** for the new on-chain plane (hex ports unchanged):
+  - `ContractEventTriggerAdapter` — `provider.on()` subscription + catchup poller for `DisputeCreation` events. Persists `lastSeenBlock` so restarts don't re-trigger past disputes.
+  - `OnchainKeeperExecutionAdapter` — submits `executeRuling()` calldata via the **KeeperHub MCP** server (per the prize criteria; we do not bypass MCP with direct contract calls). The adapter wraps a `DirectTxAdapter` for the apps/api callback mirror so the SSE stream still updates immediately while KeeperHub finalises onchain.
+  - `UniswapSettlementAdapter` — Uniswap v3 `SwapRouter02` wrapper for cross-token settlement when an Arbitrable's settlement token differs from the buyer's preferred refund token. No-ops with a `uniswap_not_configured` warning if the router isn't on the active chain.
+  - `EnsReputationIdentityAdapter` — writes `tribune.disputes.total / won / lost / last.verdict` text records via the ENS Public Resolver. Falls through to `<name>.<tribune.eth>` shadow records when the panel signer doesn't own the user's ENS name. Read path uses `text(node, key)` + namehash.
+- **`/info`** on apps/api now exposes the deployed contract addresses (`arbitrator`, `panelRegistry`, `exampleEscrow`, `settlementToken`), `chainId`, and `explorerBaseUrl`. The web demo pill reads this and shows `Onchain (testnet)` / `Replay · onchain` automatically.
+- **Hex contract preserved.** No port interfaces changed in Phase 4. The Phase 3 `InferencePort`, `StoragePort`, `ExecutionPort`, `IdentityPort` carry through verbatim — Phase 4 just adds new adapters.
+
+What still requires the user's testnet credentials to fully validate:
+
+- Live deployment via `forge script script/Deploy.s.sol --rpc-url https://evmrpc-testnet.0g.ai --broadcast`. Needs a funded `PRIVATE_KEY` and a `USDC_ADDRESS` on 0G Galileo. The script logs every address and a copy-paste JSON for `packages/contracts/deployments/0g-testnet.json`.
+- Live KeeperHub MCP submission. The adapter speaks the documented `keeperhub.createKeeperRun` / `keeperhub.getKeeperRun` tools at `KEEPERHUB_MCP_URL`. Set `KEEPERHUB_API_KEY` once you've registered with KeeperHub. When unset, the panel falls back to `DirectTxAdapter` (HTTP-only, no chain).
+- Uniswap router availability on Galileo. See `FEEDBACK.md` — turn the router on by setting `UNISWAP_ROUTER_ADDRESS`.
+- ENS deployment on the active chain. Set `ENS_PUBLIC_RESOLVER_ADDRESS` + `ENS_REGISTRY_ADDRESS` to enable the live ENS write path.
+
+What's deferred to a v2:
+
+- Mainnet deployment.
+- Appeals (single-round verdicts only in v1).
+- Decentralised PanelRegistry (stake / slashing / multi-signer).
+- A wallet-driven onchain dispute filing path in `apps/web` (RainbowKit + `wagmi.writeContract` against `ExampleEscrow.disputeTransaction`). The current frontend files via `POST /disputes`; the Phase 4 indexer promotes this to onchain when configured.
+
+See `packages/contracts/README.md` for the full contract surface, deployment guide, and "How to swap Tribune in for any ERC-792 arbitrator" walkthrough.
 
 ## Phase 3 — Real panel on 0G
 

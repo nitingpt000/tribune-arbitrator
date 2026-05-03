@@ -1,3 +1,38 @@
+# Sponsor developer-experience feedback (Phase 3 + Phase 4)
+
+## KeeperHub MCP (Phase 4)
+
+What we tried to do: submit `TribuneArbitrator.executeRuling(disputeId, ruling, bundleHash)` calldata to KeeperHub for guaranteed on-chain inclusion via the MCP server, then poll a job ID for the resulting tx hash.
+
+Worked well:
+
+- The "AI agent → MCP tool" framing maps cleanly onto our `ExecutionPort` adapter. We did not have to invent a new abstraction.
+- A single `createKeeperRun` + `getKeeperRun` pair is enough for our use case.
+
+Rough edges:
+
+- The static landing page at `docs.keeperhub.com/` does not surface the _exact_ tool names, request bodies, and response shapes — it points to `/ai-tools/mcp-server` and `/api/direct-execution` but those subpages were not in the snapshot we pulled. We had to infer the shape and document it in `apps/panel/src/adapters/execution/keeperhub-mcp.client.ts`. Live verification is a TODO once we have an API key.
+- 0G Chain is not in the documented supported-chains list (Ethereum, Base, Arbitrum, Polygon, Sepolia were named). We need a confirmation that KeeperHub will route Galileo testnet calldata, and if not, a clean fallback path. Our adapter falls back to the `DirectTxAdapter` (HTTP back to apps/api) but that's not "guaranteed inclusion" — it's panel signer issuing the tx.
+- Job-status poll cadence is undocumented. We default to a 3 s poll inside the panel; that's a guess.
+
+## 0G Galileo testnet contract layer (Phase 4)
+
+What we tried: deploy `TribuneArbitrator` + `PanelRegistry` + `ExampleEscrow` to Galileo (chainId 16601), point the panel at it.
+
+Rough edges:
+
+- A canonical USDC address on Galileo isn't published in the testnet docs we read. We let `Deploy.s.sol` take `USDC_ADDRESS` as an env var and recommend deploying a `MockERC20` if there's no testnet USDC.
+- Uniswap v3 router availability on Galileo is unclear. The settlement adapter accepts a `UNISWAP_ROUTER_ADDRESS` env var and silently no-ops when unset, so the rest of the dispute flow still works without cross-token settlement.
+- ENS deployment on Galileo is unclear. The reputation adapter logs and skips writes when the resolver is unset; the apps/api reputation table remains authoritative until ENS is wired.
+
+## Kleros ERC-792 (Phase 4)
+
+What worked: the public Kleros contracts in `kleros/erc-792` — particularly `IArbitrable.sol`, `IArbitrator.sol`, `examples/SimpleEscrow.sol` — are _clean_. They compile under `^0.8.9`, have no implicit assumptions about the arbitrator's identity, and let us drop in `TribuneArbitrator` with literally a constructor argument change. This is exactly what a standard should look like.
+
+Surprise: `IArbitrator.DisputeStatus` has three states (`Waiting`, `Appealable`, `Solved`) — even systems that don't support appeals must include the enum. We honour this in `TribuneArbitrator`.
+
+Action item taken: vendored the Kleros SimpleEscrow and interfaces under `lib/erc-792-vendored/` and wrote a verbatim-deploy compat test in `test/KlerosCompat.t.sol`. All three flows pass. The gas snapshot is committed.
+
 # 0G developer-experience feedback (Phase 3)
 
 What this file is: concrete, non-snarky notes on what worked, what was missing, and what surprised us building Tribune's panel adjudication on top of 0G Compute and 0G Storage. Send these to 0G if useful.
