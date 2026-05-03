@@ -14,7 +14,7 @@ import {
   type DisputeWithRelations,
 } from '../../common/serializers';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MockPanelService } from '../panel/mock-panel.service';
+import { PanelClientService } from '../panel/panel-client.service';
 
 const DEFAULT_INCLUDE = {
   evidence: { orderBy: { createdAt: 'asc' as const } },
@@ -32,7 +32,7 @@ const SUMMARY_INCLUDE = {
 export class DisputesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly panel: MockPanelService,
+    private readonly panel: PanelClientService,
   ) {}
 
   async create(input: CreateDisputeInput): Promise<Dispute> {

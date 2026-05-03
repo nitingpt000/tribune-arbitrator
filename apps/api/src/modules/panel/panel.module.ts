@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { MockPanelService } from './mock-panel.service';
-import { ReasoningTemplateService } from './reasoning-templates';
+import { PanelCallbackController } from './panel-callback.controller';
+import { PanelClientService } from './panel-client.service';
 
 @Module({
-  providers: [MockPanelService, ReasoningTemplateService],
-  exports: [MockPanelService],
+  controllers: [PanelCallbackController],
+  providers: [PanelClientService],
+  exports: [PanelClientService],
 })
 export class PanelModule {}

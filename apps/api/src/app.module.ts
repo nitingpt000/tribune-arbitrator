@@ -8,6 +8,7 @@ import { AgentsModule } from './modules/agents/agents.module';
 import { DisputesModule } from './modules/disputes/disputes.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
 import { HealthModule } from './modules/health/health.module';
+import { InfoModule } from './modules/info/info.module';
 import { PanelModule } from './modules/panel/panel.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -35,6 +36,7 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     HealthModule,
+    InfoModule,
     PanelModule,
     StatsModule,
     DisputesModule,

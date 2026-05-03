@@ -10,4 +10,7 @@ export const configValidationSchema = Joi.object({
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
     .default('info'),
+  APP_PROFILE: Joi.string().valid('local', 'demo', 'test', 'replay').default('test'),
+  PANEL_SERVICE_URL: Joi.string().uri().default('http://localhost:3002'),
+  TRIBUNE_PANEL_SHARED_SECRET: Joi.string().default('dev-only-change-me'),
 });
