@@ -7,9 +7,10 @@ import { usePathname } from 'next/navigation';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { WalletPill } from '@/components/wallet-pill';
+import { useInfo } from '@/lib/api/info';
 import { cn } from '@/lib/cn';
 
-const DEMO_MODE_LABEL = process.env.NEXT_PUBLIC_DEMO_MODE ?? 'Mock panel';
+const FALLBACK_LABEL = process.env.NEXT_PUBLIC_DEMO_MODE ?? 'Mock panel';
 
 const NAV: Array<{ href: Route; label: string }> = [
   { href: '/disputes', label: 'Disputes' },
@@ -19,6 +20,8 @@ const NAV: Array<{ href: Route; label: string }> = [
 
 export function Header(): React.JSX.Element {
   const pathname = usePathname();
+  const { data: info } = useInfo();
+  const demoLabel = info?.demoModeLabel ?? FALLBACK_LABEL;
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md backdrop-saturate-150">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
@@ -33,10 +36,10 @@ export function Header(): React.JSX.Element {
             </span>
             <span className="text-[1.02rem] font-semibold tracking-[-0.01em]">Tribune</span>
             <span
-              aria-label={`Demo mode: ${DEMO_MODE_LABEL}`}
+              aria-label={`Demo mode: ${demoLabel}`}
               className="ml-1 hidden rounded-full border border-warning/30 bg-warning-soft px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.08em] text-warning sm:inline-flex"
             >
-              Demo · {DEMO_MODE_LABEL}
+              Demo · {demoLabel}
             </span>
           </Link>
 
