@@ -1,0 +1,29 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.27"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+gas_reports = ["TribuneArbitrator", "ExampleEscrow"]
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "forge-std/=lib/forge-std/src/",
+  "@erc792-vendored/=lib/erc-792-vendored/",
+]
+
+[profile.default.fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+
+[fuzz]
+runs = 256
+
+[invariant]
+runs = 64
+depth = 32
