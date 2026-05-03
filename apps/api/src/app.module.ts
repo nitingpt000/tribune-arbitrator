@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LoggerModule } from 'nestjs-pino';
 
-import { AgentsModule } from './agents/agents.module';
 import { configValidationSchema } from './common/config.schema';
-import { DisputesModule } from './disputes/disputes.module';
-import { EvidenceModule } from './evidence/evidence.module';
-import { HealthModule } from './health/health.module';
+import { AgentsModule } from './modules/agents/agents.module';
+import { DisputesModule } from './modules/disputes/disputes.module';
+import { EvidenceModule } from './modules/evidence/evidence.module';
+import { HealthModule } from './modules/health/health.module';
+import { PanelModule } from './modules/panel/panel.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -16,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
       validationSchema: configValidationSchema,
       validationOptions: { abortEarly: false, allowUnknown: true },
     }),
+    EventEmitterModule.forRoot({ wildcard: true, maxListeners: 64 }),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL ?? 'info',
@@ -31,6 +35,8 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     PrismaModule,
     HealthModule,
+    PanelModule,
+    StatsModule,
     DisputesModule,
     EvidenceModule,
     AgentsModule,

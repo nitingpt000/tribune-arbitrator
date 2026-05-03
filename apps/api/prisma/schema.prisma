@@ -8,51 +8,125 @@ datasource db {
 }
 
 enum DisputeStatus {
-  pending
-  in_review
-  resolved
-  cancelled
+  PENDING
+  ADJUDICATING
+  SETTLED
+  REJECTED
+}
+
+enum PanelVoteChoice {
+  REFUND
+  REJECT
+  ABSTAIN
+}
+
+enum PanelVoteStatus {
+  PENDING
+  REASONING
+  VOTED
+  FAILED
+}
+
+enum SettlementStepType {
+  VERDICT_ONCHAIN
+  KEEPER_CLAIMED
+  FUNDS_RELEASED
+  ENS_REPUTATION
+}
+
+enum SettlementStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
 
 model Dispute {
-  id                String        @id @default(uuid()) @db.Uuid
-  arbitrable        String
-  externalDisputeId String
-  choices           Int
-  metadataUri       String?
-  status            DisputeStatus @default(pending)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id              String           @id @default(uuid())
+  status          DisputeStatus    @default(PENDING)
+  claimantEns     String
+  respondentEns   String
+  claimType       String
+  statement       String
+  txHash          String
+  amountUsdc      Decimal          @db.Decimal(20, 6)
+  arbitrationFee  Decimal          @db.Decimal(20, 6) @default(0.50)
+  evidence        Evidence[]
+  panelVotes      PanelVote[]
+  verdict         Verdict?
+  settlementSteps SettlementStep[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  evidence Evidence[]
-  verdict  Verdict?
-
-  @@unique([arbitrable, externalDisputeId])
   @@index([status])
+  @@index([claimantEns])
+  @@index([respondentEns])
 }
 
 model Evidence {
-  id          String   @id @default(uuid()) @db.Uuid
-  disputeId   String   @db.Uuid
-  submitter   String
-  uri         String
-  contentHash String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  disputeId  String
+  dispute    Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  storageUri String
+  createdAt  DateTime @default(now())
 
   @@index([disputeId])
 }
 
-model Verdict {
-  id         String   @id @default(uuid()) @db.Uuid
-  disputeId  String   @unique @db.Uuid
-  ruling     Int
-  rationale  String
-  signedBy   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model PanelVote {
+  id         String          @id @default(uuid())
+  disputeId  String
+  dispute    Dispute         @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  modelName  String
+  vote       PanelVoteChoice @default(ABSTAIN)
+  confidence Decimal         @db.Decimal(3, 2) @default(0.0)
+  reasoning  String          @default("")
+  status     PanelVoteStatus @default(PENDING)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
-  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  @@unique([disputeId, modelName])
+  @@index([disputeId])
+}
+
+model Verdict {
+  id              String          @id @default(uuid())
+  disputeId       String          @unique
+  dispute         Dispute         @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  outcome         PanelVoteChoice
+  votesFor        Int
+  votesAgainst    Int
+  totalDurationMs Int
+  totalCostUsd    Decimal         @db.Decimal(10, 4)
+  createdAt       DateTime        @default(now())
+}
+
+model SettlementStep {
+  id          String               @id @default(uuid())
+  disputeId   String
+  dispute     Dispute              @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  step        SettlementStepType
+  status      SettlementStepStatus @default(PENDING)
+  txHash      String?
+  detail      String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime             @default(now())
+
+  @@unique([disputeId, step])
+  @@index([disputeId])
+}
+
+model AgentReputation {
+  ens                  String   @id
+  totalDisputes        Int      @default(0)
+  disputesWon          Int      @default(0)
+  disputesLost         Int      @default(0)
+  frivolityIndex       Decimal  @db.Decimal(4, 2) @default(0.00)
+  evidenceQualityScore Decimal  @db.Decimal(3, 1) @default(0.0)
+  lastVerdictId        String?
+  updatedAt            DateTime @updatedAt
 }
