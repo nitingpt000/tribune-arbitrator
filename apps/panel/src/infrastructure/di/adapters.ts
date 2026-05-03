@@ -1,7 +1,10 @@
 import path from 'node:path';
 
 import { DirectTxAdapter } from '../../adapters/execution/direct-tx.adapter';
+import { HttpKeeperHubMcpClient } from '../../adapters/execution/keeperhub-mcp.client';
 import { LogOnlyExecutionAdapter } from '../../adapters/execution/log-only.adapter';
+import { OnchainKeeperExecutionAdapter } from '../../adapters/execution/onchain-keeper.adapter';
+import { EnsReputationIdentityAdapter } from '../../adapters/identity/ens-reputation.adapter';
 import { MemoryIdentityAdapter } from '../../adapters/identity/memory.adapter';
 import { ReadonlyEnsAdapter } from '../../adapters/identity/readonly-ens.adapter';
 import { OgComputeAdapter } from '../../adapters/inference/og-compute.adapter';
@@ -88,14 +91,8 @@ function buildReplay(deps: AdjudicationFactoryDeps, frozen: boolean): Adjudicati
         logger: deps.logger,
       })
     : new FilesystemStorageAdapter(path.resolve(deps.config.fixturesDir, '.storage'));
-  const execution = new DirectTxAdapter(
-    {
-      apiBaseUrl: deps.config.apiBaseUrl,
-      sharedSecret: deps.config.sharedSecret,
-    },
-    deps.logger,
-  );
-  const identity = new ReadonlyEnsAdapter(deps.logger);
+  const execution = pickExecution(deps);
+  const identity = pickIdentity(deps);
   const service = new AdjudicationService(
     inference,
     storage,
@@ -131,14 +128,8 @@ function buildLocal(deps: AdjudicationFactoryDeps): AdjudicationFactoryOutput {
     privateKey: deps.config.privateKey,
     logger: deps.logger,
   });
-  const execution = new DirectTxAdapter(
-    {
-      apiBaseUrl: deps.config.apiBaseUrl,
-      sharedSecret: deps.config.sharedSecret,
-    },
-    deps.logger,
-  );
-  const identity = new ReadonlyEnsAdapter(deps.logger);
+  const execution = pickExecution(deps);
+  const identity = pickIdentity(deps);
   const service = new AdjudicationService(
     inference,
     storage,
@@ -148,4 +139,48 @@ function buildLocal(deps: AdjudicationFactoryDeps): AdjudicationFactoryOutput {
     deps.logger,
   );
   return { service, inference, storage, execution, identity };
+}
+
+function pickExecution(deps: AdjudicationFactoryDeps): ExecutionPort {
+  if (deps.config.arbitratorAddress && deps.config.keeperhubMcpUrl && deps.config.keeperhubApiKey) {
+    deps.logger.info('di.execution.onchain_keeper', {
+      arbitrator: deps.config.arbitratorAddress,
+      mcp: deps.config.keeperhubMcpUrl,
+    });
+    const mcpClient = new HttpKeeperHubMcpClient(
+      deps.config.keeperhubMcpUrl,
+      deps.config.keeperhubApiKey,
+      deps.logger,
+    );
+    return new OnchainKeeperExecutionAdapter({
+      arbitratorAddress: deps.config.arbitratorAddress,
+      chainId: deps.config.chainId,
+      mcpClient,
+      apiBaseUrl: deps.config.apiBaseUrl,
+      sharedSecret: deps.config.sharedSecret,
+      logger: deps.logger,
+    });
+  }
+  return new DirectTxAdapter(
+    { apiBaseUrl: deps.config.apiBaseUrl, sharedSecret: deps.config.sharedSecret },
+    deps.logger,
+  );
+}
+
+function pickIdentity(deps: AdjudicationFactoryDeps): IdentityPort {
+  if (deps.config.ensPublicResolverAddress && deps.config.privateKey) {
+    deps.logger.info('di.identity.ens', {
+      resolver: deps.config.ensPublicResolverAddress,
+      space: deps.config.ensSubnameSpace,
+    });
+    return new EnsReputationIdentityAdapter({
+      rpcUrl: deps.config.ogRpcUrl,
+      publicResolverAddress: deps.config.ensPublicResolverAddress,
+      ensRegistryAddress: deps.config.ensRegistryAddress,
+      signerKey: deps.config.privateKey,
+      subnameSpace: deps.config.ensSubnameSpace,
+      logger: deps.logger,
+    });
+  }
+  return new ReadonlyEnsAdapter(deps.logger);
 }
