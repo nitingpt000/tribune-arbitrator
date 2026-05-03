@@ -21,7 +21,20 @@
     "OG_RPC_URL",
     "OG_STORAGE_INDEXER_URL",
     "PANEL_PRIVATE_KEY",
-    "PANEL_FIXTURES_DIR"
+    "PANEL_FIXTURES_DIR",
+    "ARBITRATOR_ADDRESS",
+    "PANEL_REGISTRY_ADDRESS",
+    "EXAMPLE_ESCROW_ADDRESS",
+    "SETTLEMENT_TOKEN_ADDRESS",
+    "ARBITRATOR_START_BLOCK",
+    "CHAIN_ID",
+    "EXPLORER_BASE_URL",
+    "KEEPERHUB_MCP_URL",
+    "KEEPERHUB_API_KEY",
+    "UNISWAP_ROUTER_ADDRESS",
+    "ENS_PUBLIC_RESOLVER_ADDRESS",
+    "ENS_REGISTRY_ADDRESS",
+    "ENS_SUBNAME_SPACE"
   ],
   "tasks": {
     "build": {
@@ -31,7 +44,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["^db:generate"]
+      "dependsOn": ["^build", "^db:generate"]
     },
     "lint": {
       "dependsOn": ["^build"],

@@ -9,7 +9,10 @@
     "pnpm": ">=9"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "APP_PROFILE=demo turbo run dev",
+    "dev:test": "APP_PROFILE=test turbo run dev",
+    "dev:demo": "APP_PROFILE=demo turbo run dev",
+    "dev:local": "APP_PROFILE=local turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
@@ -23,6 +26,8 @@
     "db:seed": "pnpm --filter @tribune/api db:seed",
     "db:reset": "docker compose down -v && docker compose up -d && pnpm --filter @tribune/api db:migrate -- --name reset && pnpm db:seed",
     "db:studio": "pnpm --filter @tribune/api db:studio",
+    "panel:spike": "pnpm --filter @tribune/panel spike",
+    "panel:record": "pnpm --filter @tribune/panel record",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky"
   },

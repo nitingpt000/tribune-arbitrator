@@ -4,6 +4,8 @@ ERC-792-compatible AI arbitrator for onchain disputes between AI agents.
 
 This repository is a Turborepo monorepo containing the Tribune web app, API, panel service, ERC-792 contracts, and shared packages.
 
+> **ETHGlobal Open Agents 2026 submission** — see [`SUBMISSION.md`](./SUBMISSION.md) for the writeup, [`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md) for the demo runbook, [`FEEDBACK.md`](./FEEDBACK.md) for sponsor-DX notes, and [`packages/contracts/test/KlerosCompat.t.sol`](./packages/contracts/test/KlerosCompat.t.sol) for the ERC-792 compatibility test against unmodified Kleros code.
+
 ## Phase 4 — Onchain via ERC-792 + KeeperHub + Uniswap + ENS
 
 What Phase 4 adds:
@@ -184,20 +186,52 @@ pnpm --filter @tribune/api dev
 
 ## Environment variables
 
-`.env.example` (root) documents every variable; each app reads only the ones it needs. The API also reads `apps/api/.env` directly (auto-loaded by Prisma + dotenv).
+`.env.example` files exist at the root, in `apps/api`, in `apps/panel`, and in `apps/web`. Each is a literal mirror of the Joi config schema for that app (or, for `apps/web`, the `NEXT_PUBLIC_*` keys read by the client). To onboard:
 
-| Variable                               | Used by | Notes                                   |
-| -------------------------------------- | ------- | --------------------------------------- |
-| `DATABASE_URL`                         | api     | Postgres connection string              |
-| `API_PORT`                             | api     | Default `3001`                          |
-| `WEB_ORIGIN`                           | api     | CORS allow-origin                       |
-| `LOG_LEVEL`                            | api     | Pino log level (default `info`)         |
-| `WEB_PORT`                             | web     | Default `3000`                          |
-| `NEXT_PUBLIC_API_URL`                  | web     | API base URL (default `:3001`)          |
-| `NEXT_PUBLIC_DEMO_MODE`                | web     | Header pill label (`Mock panel`)        |
-| `NEXT_PUBLIC_OG_CHAIN_ID`              | web     | 0G Chain id (testnet `16601`) — Phase 4 |
-| `NEXT_PUBLIC_OG_RPC_URL`               | web     | 0G RPC endpoint — Phase 4               |
-| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | web     | RainbowKit / WalletConnect project id   |
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+cp apps/panel/.env.example apps/panel/.env
+cp apps/web/.env.example apps/web/.env.local
+```
+
+The Phase 1–3 keys are uncommented and have working defaults for the demo profile. The Phase 4 keys (contracts / KeeperHub MCP / Uniswap / ENS) are commented out so a fresh clone runs `pnpm dev` without further setup; uncomment them once you've run `forge script Deploy.s.sol` (see `packages/contracts/README.md`) and registered with KeeperHub.
+
+| Variable                                | Used by   | Notes                                                           |
+| --------------------------------------- | --------- | --------------------------------------------------------------- |
+| `DATABASE_URL`                          | api       | Postgres connection string                                      |
+| `API_PORT`                              | api       | Default `3001`                                                  |
+| `PANEL_PORT`                            | panel     | Default `3002`                                                  |
+| `WEB_PORT`                              | web       | Default `3000`                                                  |
+| `WEB_ORIGIN`                            | api       | CORS allow-origin                                               |
+| `LOG_LEVEL`                             | api+panel | Pino log level (default `info`)                                 |
+| `APP_PROFILE`                           | api+panel | `test` / `demo` / `replay` / `local`                            |
+| `PANEL_SERVICE_URL`                     | api       | Where to call /adjudicate (default `http://localhost:3002`)     |
+| `TRIBUNE_API_URL`                       | panel     | Where to post callbacks (default `http://localhost:3001`)       |
+| `TRIBUNE_PANEL_SHARED_SECRET`           | api+panel | Bearer for /adjudicate + /panel-callback/\*                     |
+| `OG_RPC_URL`                            | panel     | 0G testnet RPC (Phase 3 inference, Phase 4 contract reads)      |
+| `OG_STORAGE_INDEXER_URL`                | panel     | 0G Storage indexer                                              |
+| `PANEL_PRIVATE_KEY`                     | panel     | Funded 0G testnet key (required for `local`/replay-recording)   |
+| `PANEL_FIXTURES_DIR`                    | panel     | Replay fixture directory (default `./fixtures`)                 |
+| `NEXT_PUBLIC_API_URL`                   | web       | API base URL                                                    |
+| `NEXT_PUBLIC_DEMO_MODE`                 | web       | Pill fallback when `/info` is unreachable                       |
+| `NEXT_PUBLIC_OG_CHAIN_ID`               | web       | 0G Chain id (testnet `16601`)                                   |
+| `NEXT_PUBLIC_OG_RPC_URL`                | web       | 0G RPC endpoint                                                 |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`  | web       | RainbowKit / WalletConnect project id                           |
+| **Phase 4 (commented out by default):** |           |                                                                 |
+| `CHAIN_ID`                              | api+panel | EVM chain id of the deployed arbitrator                         |
+| `EXPLORER_BASE_URL`                     | api       | e.g. `https://chainscan-galileo.0g.ai`                          |
+| `ARBITRATOR_ADDRESS`                    | api+panel | TribuneArbitrator deployment                                    |
+| `PANEL_REGISTRY_ADDRESS`                | api       | PanelRegistry deployment                                        |
+| `EXAMPLE_ESCROW_ADDRESS`                | api+panel | Reference Arbitrable deployment                                 |
+| `SETTLEMENT_TOKEN_ADDRESS`              | api       | ERC-20 used by ExampleEscrow (typically USDC)                   |
+| `ARBITRATOR_START_BLOCK`                | panel     | Block to start the contract-event indexer from                  |
+| `KEEPERHUB_MCP_URL`                     | panel     | KeeperHub MCP endpoint (turns on OnchainKeeperExecutionAdapter) |
+| `KEEPERHUB_API_KEY`                     | panel     | KeeperHub bearer token                                          |
+| `UNISWAP_ROUTER_ADDRESS`                | panel     | V3 SwapRouter02 for cross-token settlement (no-op when unset)   |
+| `ENS_PUBLIC_RESOLVER_ADDRESS`           | panel     | Turns on EnsReputationIdentityAdapter when paired with the key  |
+| `ENS_REGISTRY_ADDRESS`                  | panel     | ENS registry on the active chain                                |
+| `ENS_SUBNAME_SPACE`                     | panel     | Default `tribune.eth` for shadow records                        |
 
 ## Tests
 
