@@ -1,0 +1,4 @@
+{
+  "contentType": "application/json",
+  "authorizedReaders": ["alice.test.eth", "bob.test.eth", "tribune.system"]
+}
