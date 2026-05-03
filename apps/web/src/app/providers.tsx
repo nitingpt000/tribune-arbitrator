@@ -1,27 +1,75 @@
 'use client';
 
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, useState, type ReactNode } from 'react';
-import { WagmiProvider } from 'wagmi';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
+import { useState, type ReactNode } from 'react';
+import { toast, Toaster } from 'sonner';
 
-import { createWagmiConfig, type WagmiConfig } from '@/lib/wagmi';
+import { ApiError, NetworkError } from '@/lib/api/client';
+
+function describeError(err: unknown): { title: string; description: string } {
+  if (err instanceof NetworkError) {
+    return {
+      title: 'Couldn\u2019t reach the API',
+      description: 'Make sure the backend is running on the API URL.',
+    };
+  }
+  if (err instanceof ApiError) {
+    if (err.errors?.length) {
+      const first = err.errors[0]!;
+      return {
+        title: err.message,
+        description: `${first.path}: ${first.message}`,
+      };
+    }
+    return {
+      title: err.message,
+      description: err.detail ?? `Request failed (${err.status}).`,
+    };
+  }
+  if (err instanceof Error) return { title: 'Something went wrong', description: err.message };
+  return { title: 'Something went wrong', description: 'Unknown error' };
+}
 
 export function Providers({ children }: { children: ReactNode }): React.JSX.Element {
-  const [config, setConfig] = useState<WagmiConfig | null>(null);
-  const [queryClient] = useState(() => new QueryClient());
-
-  useEffect(() => {
-    setConfig(createWagmiConfig());
-  }, []);
-
-  if (!config) return <>{children}</>;
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+          mutations: { retry: 0 },
+        },
+        queryCache: new QueryCache({
+          onError: (error, query) => {
+            // Don't toast on background refetches that succeeded previously.
+            if (query.state.data !== undefined) return;
+            const { title, description } = describeError(error);
+            toast.error(title, { description });
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error) => {
+            const { title, description } = describeError(error);
+            toast.error(title, { description });
+          },
+        }),
+      }),
+  );
 
   return (
-    <WagmiProvider config={config}>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>{children}</RainbowKitProvider>
+        {children}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            classNames: {
+              toast:
+                'border border-border bg-surface text-foreground rounded-card shadow-none font-sans text-sm',
+            },
+          }}
+        />
       </QueryClientProvider>
-    </WagmiProvider>
+    </ThemeProvider>
   );
 }

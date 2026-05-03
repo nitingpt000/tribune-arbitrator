@@ -1,45 +1,157 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
-  --color-background: oklch(0.99 0 0);
-  --color-foreground: oklch(0.15 0 0);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.15 0 0);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-surface: var(--color-surface-raw);
+  --color-surface-2: var(--color-surface-2-raw);
+  --color-muted: var(--color-muted-raw);
+  --color-muted-foreground: var(--color-muted-fg);
+  --color-border: var(--color-border-raw);
+  --color-border-strong: var(--color-border-strong-raw);
+  --color-ring: var(--color-ring-raw);
+  --color-accent: var(--color-accent-raw);
+  --color-accent-foreground: var(--color-accent-fg);
 
-  --color-primary: oklch(0.21 0.034 264);
-  --color-primary-foreground: oklch(0.98 0 0);
+  --color-success: var(--color-success-raw);
+  --color-success-soft: var(--color-success-soft-raw);
+  --color-warning: var(--color-warning-raw);
+  --color-warning-soft: var(--color-warning-soft-raw);
+  --color-danger: var(--color-danger-raw);
+  --color-danger-soft: var(--color-danger-soft-raw);
+  --color-info: var(--color-info-raw);
+  --color-info-soft: var(--color-info-soft-raw);
 
-  --color-secondary: oklch(0.96 0.005 264);
-  --color-secondary-foreground: oklch(0.21 0.034 264);
+  --radius-card: 0.625rem;
+  --radius-input: 0.4rem;
 
-  --color-muted: oklch(0.96 0.005 264);
-  --color-muted-foreground: oklch(0.5 0.02 264);
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-float-in: float-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
-  --color-accent: oklch(0.96 0.005 264);
-  --color-accent-foreground: oklch(0.21 0.034 264);
+:root {
+  --color-bg: oklch(0.995 0 0);
+  --color-fg: oklch(0.16 0.005 264);
+  --color-surface-raw: oklch(0.985 0.002 264);
+  --color-surface-2-raw: oklch(0.97 0.003 264);
+  --color-muted-raw: oklch(0.96 0.003 264);
+  --color-muted-fg: oklch(0.5 0.012 264);
+  --color-border-raw: oklch(0.92 0.004 264);
+  --color-border-strong-raw: oklch(0.85 0.005 264);
+  --color-ring-raw: oklch(0.16 0.005 264);
+  --color-accent-raw: oklch(0.16 0.005 264);
+  --color-accent-fg: oklch(0.99 0 0);
 
-  --color-destructive: oklch(0.6 0.22 25);
-  --color-destructive-foreground: oklch(0.98 0 0);
+  --color-success-raw: oklch(0.55 0.16 158);
+  --color-success-soft-raw: oklch(0.95 0.04 158);
+  --color-warning-raw: oklch(0.66 0.16 70);
+  --color-warning-soft-raw: oklch(0.97 0.05 80);
+  --color-danger-raw: oklch(0.58 0.21 24);
+  --color-danger-soft-raw: oklch(0.96 0.035 24);
+  --color-info-raw: oklch(0.55 0.13 235);
+  --color-info-soft-raw: oklch(0.96 0.035 235);
+}
 
-  --color-border: oklch(0.92 0.005 264);
-  --color-input: oklch(0.92 0.005 264);
-  --color-ring: oklch(0.21 0.034 264);
+.dark {
+  --color-bg: oklch(0.135 0.005 264);
+  --color-fg: oklch(0.97 0.002 264);
+  --color-surface-raw: oklch(0.165 0.006 264);
+  --color-surface-2-raw: oklch(0.195 0.007 264);
+  --color-muted-raw: oklch(0.21 0.007 264);
+  --color-muted-fg: oklch(0.66 0.013 264);
+  --color-border-raw: oklch(0.25 0.008 264);
+  --color-border-strong-raw: oklch(0.32 0.01 264);
+  --color-ring-raw: oklch(0.97 0.002 264);
+  --color-accent-raw: oklch(0.97 0.002 264);
+  --color-accent-fg: oklch(0.16 0.005 264);
 
-  --radius: 0.5rem;
+  --color-success-raw: oklch(0.74 0.16 158);
+  --color-success-soft-raw: oklch(0.28 0.06 158);
+  --color-warning-raw: oklch(0.8 0.16 80);
+  --color-warning-soft-raw: oklch(0.3 0.06 80);
+  --color-danger-raw: oklch(0.72 0.18 24);
+  --color-danger-soft-raw: oklch(0.3 0.07 24);
+  --color-info-raw: oklch(0.74 0.13 235);
+  --color-info-soft-raw: oklch(0.28 0.06 235);
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      'Helvetica Neue',
-      sans-serif;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+
+  ::selection {
+    background-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  /* Subtle dotted-grid backdrop, used as a layered atmosphere on hero/empty surfaces. */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, var(--color-border-strong) 1px, transparent 1px);
+    background-size: 18px 18px;
+    background-position: -1px -1px;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
