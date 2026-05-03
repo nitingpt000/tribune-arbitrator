@@ -36,3 +36,9 @@ apps/api/prisma/migrations/**/migration.sql.bak
 
 # misc
 .cache
+
+# dev artifacts (verification screenshots, playwright traces)
+.playwright-mcp
+*.png
+!apps/web/public/**/*.png
+!packages/ui/**/*.png

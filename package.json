@@ -16,8 +16,13 @@
     "type-check": "turbo run type-check",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\" --cache",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\" --cache",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
+    "db:seed": "pnpm --filter @tribune/api db:seed",
+    "db:reset": "docker compose down -v && docker compose up -d && pnpm --filter @tribune/api db:migrate -- --name reset && pnpm db:seed",
+    "db:studio": "pnpm --filter @tribune/api db:studio",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky"
   },
