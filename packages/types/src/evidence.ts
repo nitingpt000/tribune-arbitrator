@@ -3,17 +3,21 @@ import { z } from 'zod';
 export const EvidenceSchema = z.object({
   id: z.string().uuid(),
   disputeId: z.string().uuid(),
-  submitter: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  uri: z.string().url(),
-  contentHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'must be a 32-byte hex digest'),
+  filename: z.string(),
+  mimeType: z.string(),
+  sizeBytes: z.number().int().nonnegative(),
+  storageUri: z.string(),
   createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
 });
 export type Evidence = z.infer<typeof EvidenceSchema>;
 
-export const SubmitEvidenceInput = EvidenceSchema.pick({
-  submitter: true,
-  uri: true,
-  contentHash: true,
+export const AddEvidenceInput = z.object({
+  filename: z.string().min(1).max(256),
+  mimeType: z.string().min(1).max(128),
+  sizeBytes: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(50 * 1024 * 1024),
 });
-export type SubmitEvidenceInput = z.infer<typeof SubmitEvidenceInput>;
+export type AddEvidenceInput = z.infer<typeof AddEvidenceInput>;
